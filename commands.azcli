@@ -26,7 +26,7 @@ az vm create --resource-group erp-rg --name erp2 --nics erp2nic --image UbuntuLT
 
 az vm create --resource-group erp-rg --name erp3 --nics erp3nic --image UbuntuLTS --generate-ssh-keys --custom-data cloud-init.txt --availability-set erp-as --no-wait
 
-az network public-ip create --resource-group erp-rg --name erp-pip -sku Basic
+az network public-ip create --resource-group erp-rg --name erp-pip --sku Basic
 
 az network lb create --resource-group erp-rg --name erp-lb --sku Basic --public-ip-address erp-pip --frontend-ip-name erp-frontend --backend-pool-name erp-backend
 
