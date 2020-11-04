@@ -44,7 +44,7 @@ az network public-ip show --resource-group erp-rg --name erp-pip --query "[ipAdd
 
 az vm deallocate --name erp3 --resource-group erp-rg
 
-az vmss create --resource-group erp-rg --name erp-vmss --image UbuntuLTS --upgrade-policy-mode automatic --custom-data cloud-init.txt --admin-username master --generate-ssh-keys --health-probe 
+az vmss create --resource-group erp-rg --name erp-vmss --image UbuntuLTS --upgrade-policy-mode automatic --custom-data cloud-init.txt --admin-username master --generate-ssh-keys
 
 az network lb rule create --resource-group erp-rg --name erp-vmss-lb-rule --lb-name erp-vmssLB --backend-pool-name erp-vmssLBBEPool --backend-port 80 --frontend-ip-name loadBalancerFrontEnd --frontend-port 80 --protocol tcp
 
