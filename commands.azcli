@@ -1,1 +1,59 @@
+az account list -o table
+az account set --subscription <id Twojej subskrypcji>
+az account list -o table
 
+az group create --location westeurope --name erp-rg
+
+az network vnet create --name erp-vnet --location westeurope --address-prefixes 10.0.0.0/8 --subnet-name default --subnet-prefixes 10.0.0.0/24 --resource-group erp-rg
+
+az network nsg create --resource-group erp-rg --name erp-nsg
+
+az network nsg rule create --resource-group erp-rg --nsg-name erp-nsg --name ERPRuleHTTP --protocol '*' --direction inbound --source-address-prefix '*' --source-port-range '*' --destination-address-prefix '*' --destination-port-range 80 --access allow --priority 200
+
+az vm create --name erp --image UbuntuLTS --admin-username master --generate-ssh-keys --vnet-name erp-vnet --subnet default --nsg erp-nsg --custom-data cloud-init.txt  --location westeurope --resource-group erp-rg
+
+az network nic create --resource-group erp-rg --name erp1nic --vnet-name erp-vnet --subnet default --network-security-group erp-nsg
+
+az network nic create --resource-group erp-rg --name erp2nic --vnet-name erp-vnet --subnet default --network-security-group erp-nsg
+
+az network nic create --resource-group erp-rg --name erp3nic --vnet-name erp-vnet --subnet default --network-security-group erp-nsg
+
+az vm availability-set create --name erp-as --resource-group erp-rg --location westeurope
+
+az vm create --resource-group erp-rg --name erp1 --nics erp1nic --image UbuntuLTS --generate-ssh-keys --custom-data cloud-init.txt --availability-set erp-as --no-wait
+
+az vm create --resource-group erp-rg --name erp2 --nics erp2nic --image UbuntuLTS --generate-ssh-keys --custom-data cloud-init.txt --availability-set erp-as --no-wait
+
+az vm create --resource-group erp-rg --name erp3 --nics erp3nic --image UbuntuLTS --generate-ssh-keys --custom-data cloud-init.txt --availability-set erp-as --no-wait
+
+az network public-ip create --resource-group erp-rg --name erp-pip -sku Basic
+
+az network lb create --resource-group erp-rg --name erp-lb --sku Basic --public-ip-address erp-pip --frontend-ip-name erp-frontend --backend-pool-name erp-backend
+
+az network lb probe create --resource-group erp-rg --lb-name erp-lb --name erpHealthProbe --protocol tcp --port 80
+
+az network lb rule create --resource-group erp-rg --lb-name erp-lb --name erpHTTPRule --protocol tcp --frontend-port 80 --backend-port 80 --frontend-ip-name erp-frontend --backend-pool-name erp-backend --probe-name erpHealthProbe --idle-timeout 15
+
+az network nic ip-config address-pool add --address-pool erp-backend --ip-config-name ipconfig1 --nic-name erp1nic --resource-group erp-rg --lb-name erp-lb
+
+az network nic ip-config address-pool add --address-pool erp-backend --ip-config-name ipconfig1 --nic-name erp2nic --resource-group erp-rg --lb-name erp-lb
+
+az network nic ip-config address-pool add --address-pool erp-backend --ip-config-name ipconfig1 --nic-name erp3nic --resource-group erp-rg --lb-name erp-lb
+
+az network public-ip show --resource-group erp-rg --name erp-pip --query "[ipAddress]" --output tsv
+
+az vm deallocate --name erp3 --resource-group erp-rg
+
+az vmss create --resource-group erp-rg --name erp-vmss --image UbuntuLTS --upgrade-policy-mode automatic --custom-data cloud-init.txt --admin-username master --generate-ssh-keys --health-probe 
+
+az network lb rule create --resource-group erp-rg --name erp-vmss-lb-rule --lb-name erp-vmssLB --backend-pool-name erp-vmssLBBEPool --backend-port 80 --frontend-ip-name loadBalancerFrontEnd --frontend-port 80 --protocol tcp
+
+az network public-ip show --resource-group erp-rg --name erp-vmssLBPublicIP --query "[ipAddress]" --output tsv
+
+az vmss scale --resource-group erp-rg --name erp-vmss --new-capacity 5
+
+az aks create --resource-group erp-rg --name erp-aks --node-count 3 --generate-ssh-keys
+
+az aks get-credentials --resource-group erp-rg --name erp-aks
+
+kubectl get nodes
